@@ -77,6 +77,7 @@ pth() { # Returns absolute path to file(s) including file name.
 ### ALIASES ###
 alias x=exit # x exits the terminal.
 alias c=clear # c clears the terminal screen (can also use Ctrl-L).
+alias d='git --git-dir=$HOME/.dot/ --work-tree=$HOME' # Used for manipulating my dotfiles.
 alias g=git # Use with commands in $c/git/config for best results.
 alias path='echo $PATH' # Single quotes so we echo path at runtime, not alias time.
 alias h=history # Shows command history.
