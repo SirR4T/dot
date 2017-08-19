@@ -1,8 +1,6 @@
 #!/bin/bash
 
-# My rc file, I include this from .profile, .bashrc, and .zshrc like so:
-# . "$HOME/.config/gibrc"
-# The script must be sourced, only used for syntax highlighting (script can be run with sh).
+# My rc file, include from .profile, .bashrc, and .zshrc like so: . "$HOME/.config/gibrc"
 
 case $- in
   *i*) [ "$GIBRC" ] && echo "Reusing gibrc..." || echo "Using gibrc..." ;;
@@ -29,25 +27,58 @@ export BABEL_CACHE_PATH=${NODE_REPL_HISTORY="$XDG_CACHE_HOME/babel/cache.json"} 
 ls --color=auto >/dev/null 2>&1 && alias ls='ls --color=auto' # ls use colour if poss.
 [ "$(uname)" = "Darwin" ] && alias ls='ls -G' && alias dl=rmtrash # ls use colour on mac.
 
+GREP_OPTIONS=""
+for i in --color=auto "--exclude-dir={.bzr,CVS,.git,.hg,.svn}"; do
+  echo | grep $i "" &>/dev/null && GREP_OPTIONS+=" $i"
+done
+[ "$GREP_OPTIONS" ] && alias grep="grep $GREP_OPTIONS"
+unset GREP_OPTIONS
+
+
 if [ "$ZSH_VERSION" ]; then # zsh specific options.
   export ZDOTDIR="${XDG_CONFIG_HOME}/zsh" # Path to zsh config files.
-  export ZSH_CUSTOM="${XDG_CONFIG_HOME}/oh-my-zsh" # Path to custom oh-my-zsh config files.
-  export ZSH="$XDG_DATA_HOME/oh-my-zsh" # Path to your oh-my-zsh installation.
-  ZSH_THEME="gib" # Use my custom theme (in $ZSH_CUSTOM).
 
   HYPHEN_INSENSITIVE="true" # Use hyphen-insensitive completion.
   DISABLE_AUTO_TITLE="true" # Don't mess with shell title.
-  plugins=() # Choose plugins to load.
   fpath+="$XDG_DATA_HOME/zfunc" # Put (or symlink) autocomplete scripts in here.
   fpath+=/usr/local/share/zsh-completions # Homebrew zsh-completions.
-  source $ZSH/oh-my-zsh.sh # Load Oh-My-Zsh.
+
+  # Already set: interactive autocd monitor promptsubst shinstdin zle
+  setopt alwaystoend autopushd completeinword extendedhistory noflowcontrol histexpiredupsfirst histignoredups histignorespace histverify incappendhistory interactivecomments longlistjobs pushdignoredups pushdminus sharehistory prompt_subst
+
+  # Replace oh-my-zsh (just keep the bits I need)
+  autoload -U compaudit compinit # Load all stock functions (from $fpath files) called below.
+
+  for i in "$XDG_CONFIG_HOME"/oh-my-zsh/*.zsh; do source "$i"; done
+
+  # Both arrow and path are green if $? == 0, and red otherwise.
+  local arrow="%(?:%{$fg_bold[green]%}❯:%{$fg_bold[red]%}❯)%{$reset_color%}" # Green arrow if $? is 0, red otherwise.
+  local fullPath="%(?:%{$fg[green]%}%~:%{$fg[red]%}%~)%{$reset_color%}" # Green if $? is 0, red otherwise.
+
+  PROMPT='${arrow} '
+
+  # Prompt has hostname when you're ssh'ed in to a machine.
+  if [ "$SSH_CLIENT" -o "$SSH_TTY" ]; then
+    PROMPT='%{$fg_bold[magenta]%}%m%{$reset_color%} ${arrow} '
+  fi
+
+  # * means directory is dirty (uncommitted changes).
+  RPROMPT='${fullPath}$(git_prompt_info)' # Put full path and git info on right of prompt.
+
+  ZSH_THEME_GIT_PROMPT_PREFIX=" %{$fg_bold[blue]%}(%{$fg[red]%}"
+  ZSH_THEME_GIT_PROMPT_SUFFIX="%{$reset_color%}"
+  ZSH_THEME_GIT_PROMPT_DIRTY="%{$fg[yellow]%}*%{$fg[blue]%})"
+  ZSH_THEME_GIT_PROMPT_CLEAN="%{$fg[blue]%})"
+
+
   chpwd() { ls; } # Auto ls after changing directory.
   zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}' # Case-insensitive match.
   source "$XDG_DATA_HOME/zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" || true
   last_if_empty() { [ -z "$BUFFER" ] && zle up-history; zle accept-line; } # See next line.
   zle -N last_if_empty; bindkey '^M' last_if_empty # Empty input repeats last command.
-  unalias please po pu rd d afind _ # Remove unused oh-my-zsh aliases.
-  alias | grep run-help >/dev/null 2>&1 && unalias run-help # Doesn't seem to always be defined.
+  for i in please po pu rd d afind _ 1 2 3 4 5 6 7 8 9 lsa run-help; do
+    alias "$i" >/dev/null && unalias "$i" # Remove unused oh-my-zsh aliases.
+  done
   # bindkey -v # Enable vim mode (breaks history search with <Up> so disabled).
   # KEYTIMEOUT=10 # ↳ Key delay of 0.1s (Esc in vim mode is quicker).
   # bindkey -M viins 'kj' vi-cmd-mode # ↳ Map kj -> Esc in vim mode.
@@ -81,7 +112,7 @@ alias g=git # Use with commands in $c/git/config for best results.
 alias path='echo $PATH' # Single quotes so we echo path at runtime, not alias time.
 alias h=history # Shows command history.
 alias s="TERM=xterm-256color ssh -oStrictHostKeyChecking=no" # ssh avoiding checking RSA keys.
-alias l=less # Runs less (F for `tail -f` mode, Ctrl-c to cancel).
+alias md="mkdir -p"
 scpkey() { ssh $1 'mkdir -p ~/.ssh'; scp ~/.ssh/${2:-authorized_keys_scp} $1:~/.ssh/authorized_keys; } # scp key to host.
 
 alias l='ls -lAh' # Hidden, detail, human readable numbers.
@@ -94,8 +125,6 @@ alias ....="$cd ../../.."         # ↳ go up two directories.
 alias .....="$cd ../../../.."     # ↳ go up two directories.
 alias ......="$cd ../../../../.." # ↳ go up two directories.
 alias -- -="$cd -" # - cd's to the last directory.
-# Execute previous commands (1 = !-2, 2 = !-3 etc., remember that Enter is !!)
-alias 1="fc -e : -2"; alias 2="fc -e : -3"
 
 [ "$TERM_PROGRAM" = Apple_Terminal ] && export TERM=nsterm-256color # Terminal.app terminfo (updated myself).
 [ "$TERM_PROGRAM" != Apple_Terminal -a "$TERM" = nsterm-256color ] && export TERM=xterm-256color # Don't use nsterm elsewhere.

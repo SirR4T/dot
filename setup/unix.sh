@@ -19,13 +19,6 @@ else
     echo "❯❯❯ zsh is already the default shell"
 fi
 
-# Install oh-my-zsh:
-if no oh-my-zsh; then
-  # Don't run the setup script, we don't need it and it checks $SHELL which
-  # we've only just changed. Just put it in the right place.
-  gitClone robbyrussell/oh-my-zsh "$XDG_DATA_HOME/oh-my-zsh"
-fi
-
 # Set up autocompletions:
 if no zfunc; then mkdir -p "$XDG_DATA_HOME/zfunc"; fi
 
